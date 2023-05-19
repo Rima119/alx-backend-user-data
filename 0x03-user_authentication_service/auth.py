@@ -92,7 +92,6 @@ class Auth:
         self._db.update_user(user.id, reset_token=reset_token)
         return reset_token
 
-
     def update_password(self, reset_token, password):
         """Checks if user exist using the toke
         change user password reset token to None
