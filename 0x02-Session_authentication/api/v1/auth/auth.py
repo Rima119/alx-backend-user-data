@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Auth class Module
+""" Module for API authentication
 """
-
 from flask import request
-from typing import List, Pattern, TypeVar
+from typing import List, TypeVar
+import os
+from models.user import User
 
 
 class Auth:
-    """Auth class"""
+    """ Auth class
+    """
     def require_auth(self, path: str, excluded_paths: List[str]) -> bool:
-        """require auth method, allowing * at the end of excluded paths"""
+        """ Require auth method
+        allowing * at the end of excluded paths
+        """
         if path is None or excluded_paths is None or excluded_paths == []:
             return True
         if path[-1] != '/':
@@ -23,19 +27,19 @@ class Auth:
         return True
 
     def authorization_header(self, request=None) -> str:
-        """adds authorization header"""
-        if request is not None:
-            return request.headers.get('Authorization', None)
-        return None
+        """ Authorization header method
+        """
+        if request is None or 'Authorization' not in request.headers:
+            return None
+        return request.headers['Authorization']
 
     def current_user(self, request=None) -> TypeVar('User'):
-        """gets the current user"""
-        None
+        """ Current user method
+        """
+        return None
 
     def session_cookie(self, request=None):
-        """returns a cookie value from a request
-        """
+        """Returns a cookie value from a request"""
         if request is None:
             return None
-        _my_session_id = getenv("SESSION_NAME")
-        return request.cookies.get(_my_session_id)
+        return request.cookies.get(os.getenv('SESSION_NAME'))
