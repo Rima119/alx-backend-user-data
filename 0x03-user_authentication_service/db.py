@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""DB Module
+"""DB module
 """
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.orm.exc import NoResultFound
 
 from user import Base, User
 
@@ -18,7 +18,7 @@ class DB:
     def __init__(self) -> None:
         """Initialize a new DB instance
         """
-        self._engine = create_engine("postgres:///a.db", echo=False)
+        self._engine = create_engine("sqlite:///a.db", echo=False)
         Base.metadata.drop_all(self._engine)
         Base.metadata.create_all(self._engine)
         self.__session = None
@@ -33,34 +33,37 @@ class DB:
         return self.__session
 
     def add_user(self, email: str, hashed_password: str) -> User:
-        """saves the user to the database"""
-        new_user = User(email=email, hashed_password=hashed_password)
-        self._session.add(new_user)
+        """saves the user to the database."""
+        user = User()
+        user.email = email
+        user.hashed_password = hashed_password
+        self._session.add(user)
         self._session.commit()
-        return new_user
+        return user
 
     def find_user_by(self, **kwargs) -> User:
-        """takes in arbitrary keyword arguments and returns the
-        first row found in the users table as filtered by the method’s
-        input arguments"""
-        if not kwargs:
+        """returns the first row found in the users table
+        as filtered by the method’s input arguments"""
+        keyword = list(kwargs.items())[0][0]
+        try:
+            user = self._session.query(User).filter(
+                getattr(User, keyword) == kwargs[keyword]).first()
+        except InvalidRequestError:
             raise InvalidRequestError
-        user = self._session.query(User).filter_by(**kwargs).first()
+        except AttributeError:
+            raise NoResultFound
         if user is None:
             raise NoResultFound
         return user
 
     def update_user(self, user_id: int, **kwargs) -> None:
-        """updates the located user's attributes"""
-        if kwargs:
-            try:
-                user = self.find_user_by(id=user_id)
-                for key, value in kwargs.items():
-                    if hasattr(user, key):
-                        setattr(user, key, value)
-                    else:
-                        raise ValueError
-                self._session.commit()
-            except NoResultFound:
-                pass
-            return None
+        """locate the user to update, then will update the user’s attributes
+        as passed in the method’s arguments
+        then commit changes to the database"""
+        user = self.find_user_by(id=user_id)
+        keyword = list(kwargs.items())[0][0]
+        if not hasattr(user, keyword):
+            raise ValueError
+        else:
+            user.__setattr__(keyword, kwargs[keyword])
+        self._session.commit()
