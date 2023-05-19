@@ -92,18 +92,19 @@ class Auth:
         self._db.update_user(user.id, reset_token=reset_token)
         return reset_token
 
-    def update_password(self, reset_token: str, password: str) -> None:
-        """returns None - if user exist, hash the password
-        and update the user’s hashed_password field with the new hashed
-        password and the reset_token field to None - otherwise, raise
-        ValueError"""
+
+    def update_password(self, reset_token, password):
+        """Checks if user exist using the toke
+        change user password reset token to None
+        """
         if reset_token is None or password is None:
             return None
         try:
             user = self._db.find_user_by(reset_token=reset_token)
-        except NoResultFound:
-            raise ValueError
+            hashed = _hash_password(password)
+            self._db.update_user(user.id, hashed_password=hashed)
+            self._db.update_user(user.id, reset_token=None)
 
-        hashed_password = _hash_password(password).decode('utf-8')
-        self._db.update_user(user.id, hashed_password=hashed_password,
-                             reset_token=None)
+        except Exception as e:
+            raise ValueError
+        return None
